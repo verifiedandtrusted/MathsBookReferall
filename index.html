@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathsBook Rewards and Wallet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+        }
+        h1, h2 {
+            color: #FFD700;
+        }
+        input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 1em;
+            border-radius: 5px;
+            border: none;
+        }
+        .button {
+            background: #ff9500;
+            color: white;
+            padding: 12px 24px;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+        .button:hover:not(:disabled) {
+            background: #ff6b00;
+        }
+        #referralSection, #walletSection {
+            margin: 20px 0;
+        }
+        #rewardMessage, #btcPrice, #balances {
+            font-size: 1.1em;
+            color: #00FF7F;
+            margin: 15px 0;
+        }
+        #countdown {
+            font-size: 1em;
+            color: #ff6347;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MathsBook Daily Share Rewards</h1>
+        <p>Share the referral link below to earn a daily bonus of <strong>100 MathsBook</strong> and <strong>0.000002 BTC</strong>. Rewards are limited to once per day! so share your link everyday. Each day you share the following referral link, Bonus will be paid before listing day.How to Copy: Simply long press the link and click copy or click the copy button,after that click claim, please don't cheat if you do all bonus will be canceled</p>
+        <div id="referralSection">
+            <a href="https://t.me/MathsBookBot" target="_blank" id="referralLink">https://t.me/MathsBookBot</a>
+            <button id="copyButton" onclick="copyLinkToWhatsApp()">Copy to WhatsApp</button>
+            <button id="claimButton" onclick="claimDailyReward()">Claim Bonus</button>
+            <p id="countdown"></p>
+        </div>
+
+        <div id="btcPrice">
+            <strong>BTC Live Price:</strong> <span id="btcPriceValue">Loading...</span>
+        </div>
+
+        <div id="balances">
+            <p><strong>MathsBook Balance:</strong> <span id="mathsBookBalance">0</span> MBK</p>
+            <p><strong>BTC Balance:</strong> <span id="btcBalance">0.000000</span> BTC</p>
+            <p><strong>BTC Total Value in USD:</strong> <span id="btcBalanceValue">Loading...</span></p>
+        </div>
+
+        <h2>Withdraw Your Rewards</h2>
+        <input type="text" id="btcWalletAddress" placeholder="Enter your BTC Wallet Address">
+        <button id="withdrawButton" class="button" onclick="withdraw()" disabled>Withdraw</button>
+        <p id="rewardMessage"></p>
+    </div>
+
+    <script>
+        const btcPriceEndpoint = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd';
+        const dailyMathsBookReward = 100;
+        const dailyBTCReward = 0.000002;
+
+        let mathsBookBalance = parseFloat(localStorage.getItem("mathsBookBalance")) || 0;
+        let btcBalance = parseFloat(localStorage.getItem("btcBalance")) || 0;
+        let lastShareDate = localStorage.getItem("lastShareDate");
+        let btcPrice = 0;
+
+        // Fetch BTC live price
+        async function fetchBtcPrice() {
+            try {
+                const response = await fetch(btcPriceEndpoint);
+                if (!response.ok) throw new Error('Failed to fetch BTC price');
+                const data = await response.json();
+                btcPrice = data.bitcoin.usd;
+                document.getElementById('btcPriceValue').innerText = `$${btcPrice.toLocaleString()}`;
+                updateBtcBalanceValue();
+            } catch (error) {
+                console.error(error);
+                document.getElementById('btcPriceValue').innerText = "Error loading BTC price";
+            }
+        }
+
+        // Update BTC balance value in USD
+        function updateBtcBalanceValue() {
+            const btcBalanceValue = btcBalance * btcPrice;
+            document.getElementById('btcBalanceValue').innerText = `$${btcBalanceValue.toFixed(2)}`;
+        }
+
+        // Update displayed balances
+        function updateBalances() {
+            document.getElementById("mathsBookBalance").innerText = mathsBookBalance.toFixed(2);
+            document.getElementById("btcBalance").innerText = btcBalance.toFixed(6);
+            updateBtcBalanceValue();
+        }
+
+        // Handle daily reward logic (Copy Button)
+        function copyLinkToWhatsApp() {
+            processDailyReward("copy");
+        }
+
+        // Handle daily reward logic (Claim Button)
+        function claimDailyReward() {
+            processDailyReward("claim");
+        }
+
+        // Process daily reward logic
+        function processDailyReward(action) {
+            const today = new Date().toISOString().slice(0, 10);
+            if (lastShareDate === today) {
+                alert("You have already claimed your daily reward. Try again tomorrow.");
+                return;
+            }
+
+            if (action === "copy") {
+                navigator.clipboard.writeText(document.getElementById("referralLink").href)
+                    .then(() => alert("Referral link copied! Paste it on WhatsApp."))
+                    .catch(() => alert("Failed to copy link."));
+            }
+
+            mathsBookBalance += dailyMathsBookReward;
+            btcBalance += dailyBTCReward;
+            lastShareDate = today;
+
+            localStorage.setItem("mathsBookBalance", mathsBookBalance);
+            localStorage.setItem("btcBalance", btcBalance);
+            localStorage.setItem("lastShareDate", today);
+
+            updateBalances();
+            alert(`You earned ${dailyMathsBookReward} MBK and ${dailyBTCReward} BTC today!`);
+
+            // Disable both buttons for the rest of the day
+            document.getElementById("copyButton").disabled = true;
+            document.getElementById("claimButton").disabled = true;
+        }
+
+        // Countdown timer for next reward
+        function calculateCountdown() {
+            const now = new Date();
+            const nextMidnight = new Date();
+            nextMidnight.setHours(24, 0, 0, 0);
+
+            const timeDiff = nextMidnight - now;
+
+            if (timeDiff > 0) {
+                const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+                const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+                document.getElementById('countdown').innerText = `Next reward in ${hours}h ${minutes}m ${seconds}s.`;
+            }
+        }
+
+        // Handle withdrawal logic
+        function withdraw() {
+            const walletAddress = document.getElementById('btcWalletAddress').value.trim();
+            if (!walletAddress) {
+                alert("Please enter a valid BTC wallet address.");
+                return;
+            }
+            alert(`Withdrawal requested for ${walletAddress}.`);
+            mathsBookBalance = 0;
+            btcBalance = 0;
+            localStorage.setItem("mathsBookBalance", mathsBookBalance);
+            localStorage.setItem("btcBalance", btcBalance);
+            updateBalances();
+        }
+
+        // Initialize script
+        fetchBtcPrice();
+        updateBalances();
+        setInterval(fetchBtcPrice, 600000); // Refresh BTC price every 10 minutes
+        setInterval(calculateCountdown, 1000); // Update countdown every second
+    </script>
+</body>
+</html>
